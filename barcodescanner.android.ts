@@ -1,6 +1,7 @@
-import { ScanOptions, ScanResult } from "./barcodescanner.common";
 import * as appModule from "tns-core-modules/application";
 import * as utils from "tns-core-modules/utils/utils";
+
+import { ScanOptions, ScanResult } from "./barcodescanner.common";
 
 let SCANNER_REQUEST_CODE = 444;
 
@@ -16,8 +17,13 @@ export class BarcodeScanner {
   private onPermissionRejected: Function;
 
   constructor() {
+  }
+
+  private listenRequestPermissionsEvent = function () {
     let self = this;
-    appModule.android.on(appModule.AndroidApplication.activityRequestPermissionsEvent, function (args: any) {
+    const onRequestPermissionEvent = function (args: any) {
+      appModule.android.off(appModule.AndroidApplication.activityRequestPermissionsEvent, onRequestPermissionEvent);
+
       for (let i = 0; i < args.permissions.length; i++) {
         if (args.grantResults[i] === android.content.pm.PackageManager.PERMISSION_DENIED) {
           if (self.onPermissionRejected) {
@@ -32,7 +38,9 @@ export class BarcodeScanner {
       if (self.onPermissionGranted) {
         self.onPermissionGranted();
       }
-    });
+    };
+
+    appModule.android.on(appModule.AndroidApplication.activityRequestPermissionsEvent, onRequestPermissionEvent);
   }
 
   private wasCameraPermissionGranted = function () {
@@ -52,6 +60,8 @@ export class BarcodeScanner {
       [android.Manifest.permission.CAMERA],
       234 // irrelevant since we simply invoke onPermissionGranted
     );
+
+    this.listenRequestPermissionsEvent();
   };
 
   public available(): Promise<boolean> {
